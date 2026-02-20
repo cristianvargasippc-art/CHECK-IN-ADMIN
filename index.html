@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin · CHECK-IN CELIDER 2026</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=DM+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy: #0B1F3A;
+    --mid:  #1a3a6b;
+    --blue: #2563EB;
+    --lt:   #93C5FD;
+    --accent: #60A5FA;
+    --gold: #F59E0B;
+    --cream: #FAFAF7;
+    --green: #10B981;
+    --red:  #EF4444;
+    --yellow: #F59E0B;
+    --text: #1E293B;
+    --muted: #64748B;
+    --border: rgba(11,31,58,.1);
+    --bg: #F1F5F9;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  /* ── HEADER ── */
+  .hdr {
+    background: var(--navy);
+    padding: 0 1.5rem;
+    display: flex; align-items: center; justify-content: space-between;
+    height: 64px;
+    border-bottom: 1px solid rgba(255,255,255,.06);
+    position: sticky; top: 0; z-index: 100;
+    box-shadow: 0 4px 20px rgba(11,31,58,.4);
+  }
+
+  .hdr-brand { display: flex; align-items: center; gap: .8rem; }
+  .hdr-logo {
+    width: 34px; height: 34px; background: linear-gradient(135deg, var(--blue), var(--accent));
+    border-radius: 2px; display: flex; align-items: center; justify-content: center;
+    font-size: .9rem;
+  }
+  .hdr-texts {}
+  .hdr-eyebrow { font-size: .48rem; letter-spacing: .3em; color: var(--accent); font-weight: 700; text-transform: uppercase; }
+  .hdr-title {
+    font-family: 'Cormorant Garamond', serif; font-size: 1.1rem;
+    font-weight: 700; color: #fff; letter-spacing: .06em; line-height: 1;
+  }
+  .hdr-title em { color: var(--gold); font-style: normal; }
+
+  .hdr-right { display: flex; align-items: center; gap: .6rem; }
+  .live-badge {
+    display: flex; align-items: center; gap: .4rem;
+    background: rgba(16,185,129,.12); border: 1px solid rgba(16,185,129,.2);
+    padding: .3rem .7rem; border-radius: 2px;
+  }
+  .live-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); animation: pulse 1.5s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+  .live-txt { font-size: .55rem; font-weight: 700; letter-spacing: .12em; color: var(--green); text-transform: uppercase; }
+
+  /* ── TABS ── */
+  .tabs {
+    background: var(--navy);
+    display: flex;
+    border-top: 1px solid rgba(255,255,255,.05);
+    padding: 0 1.5rem;
+    overflow-x: auto;
+  }
+  .tab {
+    padding: .75rem 1.2rem;
+    font-size: .6rem; font-weight: 700; letter-spacing: .14em;
+    text-transform: uppercase; cursor: pointer;
+    color: rgba(255,255,255,.35);
+    border-bottom: 2px solid transparent;
+    transition: all .15s; white-space: nowrap; flex-shrink: 0;
+  }
+  .tab:hover  { color: rgba(255,255,255,.6); }
+  .tab.active { color: #fff; border-bottom-color: var(--blue); }
+
+  /* ── LAYOUT ── */
+  .content { padding: 1.5rem; max-width: 1400px; margin: 0 auto; }
+  .panel   { display: none; }
+  .panel.active { display: block; }
+
+  /* ── STATS ── */
+  .stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px,1fr)); gap: .8rem; margin-bottom: 1.5rem; }
+
+  .stat {
+    background: #fff; border: 1px solid var(--border);
+    padding: 1.2rem 1.2rem 1rem;
+    box-shadow: 0 1px 4px rgba(11,31,58,.06);
+    position: relative; overflow: hidden;
+  }
+  .stat::after { content:''; position:absolute; top:0; left:0; right:0; height:3px; background:var(--c,var(--blue)); }
+  .stat-n { font-family: 'Cormorant Garamond', serif; font-size: 2.6rem; font-weight: 700; color: var(--navy); line-height: 1; }
+  .stat-l { font-size: .54rem; font-weight: 700; letter-spacing: .18em; text-transform: uppercase; color: var(--muted); margin-top: .25rem; }
+  .stat-s { font-size: .65rem; font-weight: 600; margin-top: .15rem; }
+
+  /* ── TOOLBAR ── */
+  .bar {
+    display: flex; gap: .5rem; flex-wrap: wrap; align-items: center;
+    margin-bottom: 1.2rem;
+  }
+
+  .btn {
+    font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: .62rem;
+    letter-spacing: .12em; padding: .52rem 1.1rem;
+    border: 1.5px solid var(--navy); cursor: pointer;
+    text-transform: uppercase; transition: all .15s;
+    background: transparent; color: var(--navy); border-radius: 2px;
+    white-space: nowrap;
+  }
+  .btn:hover        { background: var(--navy); color: #fff; }
+  .btn.prim         { background: var(--navy); color: #fff; }
+  .btn.prim:hover   { background: var(--mid); }
+  .btn.bl           { background: var(--blue); color: #fff; border-color: var(--blue); }
+  .btn.bl:hover     { background: #1d4ed8; }
+  .btn.gr           { background: var(--green); color: #fff; border-color: var(--green); }
+  .btn.gr:hover     { background: #059669; }
+  .btn.danger       { border-color: var(--red); color: var(--red); }
+  .btn.danger:hover { background: var(--red); color: #fff; }
+
+  .search {
+    font-family: 'DM Sans', sans-serif; font-size: .72rem; font-weight: 500;
+    padding: .5rem .85rem; border: 1.5px solid var(--border);
+    background: #fff; flex: 1; min-width: 160px; max-width: 260px;
+    outline: none; color: var(--text); transition: border-color .2s; border-radius: 2px;
+  }
+  .search:focus { border-color: var(--blue); }
+  .search::placeholder { color: #CBD5E1; }
+
+  .filter-sel {
+    font-family: 'DM Sans', sans-serif; font-size: .68rem; font-weight: 600;
+    padding: .5rem .85rem; border: 1.5px solid var(--border);
+    background: #fff; outline: none; color: var(--text); cursor: pointer; border-radius: 2px;
+  }
+
+  /* ── TABLE ── */
+  .table-wrap { background: #fff; border: 1px solid var(--border); overflow: hidden; box-shadow: 0 1px 4px rgba(11,31,58,.06); overflow-x: auto; }
+
+  table { width: 100%; border-collapse: collapse; min-width: 650px; }
+  thead tr { background: var(--navy); }
+  thead th { padding: .65rem 1rem; text-align: left; font-size: .54rem; font-weight: 700; letter-spacing: .18em; text-transform: uppercase; color: var(--lt); white-space: nowrap; }
+  tbody tr { border-bottom: 1px solid var(--border); transition: background .1s; }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: rgba(37,99,235,.03); }
+  tbody td { padding: .7rem 1rem; font-size: .76rem; font-weight: 500; color: var(--text); vertical-align: middle; }
+
+  .td-name { font-family: 'Cormorant Garamond', serif; font-size: .95rem; font-weight: 700; }
+
+  .badge {
+    display: inline-flex; align-items: center; gap: .3rem;
+    font-size: .55rem; font-weight: 700; letter-spacing: .1em;
+    text-transform: uppercase; padding: .22rem .6rem; border-radius: 2px;
+  }
+  .badge-ok      { background: rgba(16,185,129,.08); color: var(--green); border: 1px solid rgba(16,185,129,.2); }
+  .badge-pending { background: rgba(245,158,11,.08); color: var(--yellow); border: 1px solid rgba(245,158,11,.2); }
+  .dot { width: 5px; height: 5px; border-radius: 50%; }
+  .dot-ok { background: var(--green); }
+  .dot-pend { background: var(--yellow); }
+
+  .empty-r td { text-align: center; padding: 2.5rem; color: #CBD5E1; font-size: .75rem; }
+
+  /* ── QR SECTION ── */
+  .upload-zone {
+    border: 2px dashed rgba(11,31,58,.15); background: #fff;
+    padding: 2.5rem 1.5rem; text-align: center; cursor: pointer;
+    transition: all .2s; margin-bottom: 1.2rem; border-radius: 2px;
+  }
+  .upload-zone:hover, .upload-zone.over { border-color: var(--blue); background: rgba(37,99,235,.02); }
+  .upload-zone input { display: none; }
+  .uz-icon { font-size: 2rem; margin-bottom: .7rem; opacity: .6; }
+  .upload-zone h2 { font-size: .9rem; font-weight: 700; margin-bottom: .3rem; }
+  .upload-zone p  { font-size: .68rem; color: var(--muted); margin-bottom: 1rem; }
+  .col-tags { display: flex; gap: .35rem; justify-content: center; flex-wrap: wrap; }
+  .col-tag { background: var(--navy); color: #fff; font-size: .52rem; letter-spacing: .18em; padding: .22rem .65rem; font-weight: 700; text-transform: uppercase; }
+  .col-tag.b { background: var(--blue); }
+
+  /* QR Grid */
+  .qr-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px,1fr)); gap: .8rem; }
+
+  .qr-card {
+    background: #fff; border: 1px solid var(--border);
+    overflow: hidden; box-shadow: 0 1px 4px rgba(11,31,58,.06);
+    transition: transform .15s, box-shadow .15s;
+  }
+  .qr-card:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(11,31,58,.12); }
+
+  .qr-stripe { height: 3px; background: linear-gradient(90deg, var(--blue), var(--accent)); }
+  .qr-head { background: var(--navy); padding: .45rem .8rem; display: flex; justify-content: space-between; align-items: center; }
+  .qr-num { font-size: .52rem; font-weight: 700; color: var(--lt); letter-spacing: .14em; }
+  .qr-deleg { font-size: .5rem; color: rgba(255,255,255,.4); font-weight: 600; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .qr-body { padding: .9rem; background: var(--cream); display: flex; justify-content: center; }
+  .qr-body canvas, .qr-body img { width: 130px !important; height: 130px !important; }
+  .qr-info { padding: .75rem .8rem .6rem; }
+  .qr-name { font-family: 'Cormorant Garamond', serif; font-size: .95rem; font-weight: 700; line-height: 1.2; margin-bottom: .35rem; word-break: break-word; }
+  .qr-tags { display: flex; flex-wrap: wrap; gap: .2rem; margin-bottom: .5rem; }
+  .qt { font-size: .5rem; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; padding: .15rem .4rem; }
+  .qt-b { background: rgba(37,99,235,.08); color: var(--blue); border: 1px solid rgba(37,99,235,.15); }
+  .qt-g { background: rgba(11,31,58,.06); color: var(--navy); border: 1px solid rgba(11,31,58,.12); }
+  .btn-dl { width: 100%; font-family: 'DM Sans', sans-serif; font-size: .55rem; font-weight: 700; letter-spacing: .13em; padding: .45rem; border: none; background: var(--navy); color: #fff; cursor: pointer; text-transform: uppercase; transition: background .15s; }
+  .btn-dl:hover { background: var(--blue); }
+
+  /* ── SECTION HEADING ── */
+  .sec-h { font-family: 'Cormorant Garamond', serif; font-size: 1.1rem; font-weight: 700; letter-spacing: .04em; margin-bottom: 1rem; display: flex; align-items: center; gap: .7rem; }
+  .sec-h::after { content:''; flex:1; height:1px; background:var(--border); }
+
+  /* ── TOAST ── */
+  .toast {
+    position: fixed; bottom: 1.5rem; right: 1.5rem;
+    background: var(--navy); color: #fff;
+    font-size: .68rem; font-weight: 600; letter-spacing: .06em;
+    padding: .8rem 1.4rem; border-left: 3px solid var(--blue); z-index: 9999;
+    transform: translateY(120px); opacity: 0; transition: all .28s;
+    box-shadow: 0 8px 24px rgba(11,31,58,.3); border-radius: 2px;
+  }
+  .toast.on { transform: translateY(0); opacity: 1; }
+
+  /* ── PROGRESS BAR ── */
+  .progress-wrap { background: var(--border); height: 4px; margin-bottom: 1.5rem; border-radius: 2px; overflow: hidden; }
+  .progress-bar  { height: 100%; background: linear-gradient(90deg, var(--blue), var(--green)); transition: width .4s ease; border-radius: 2px; }
+
+  @media (max-width: 600px) {
+    .content { padding: 1rem; }
+    .stats { grid-template-columns: 1fr 1fr; }
+    .tab { padding: .65rem .8rem; font-size: .54rem; }
+    .hdr-title { font-size: .95rem; }
+  }
+
+  @media print {
+    .hdr, .tabs, .bar { display: none !important; }
+    .qr-grid { grid-template-columns: repeat(3,1fr); gap: .5rem; }
+    .qr-card { break-inside: avoid; box-shadow: none; }
+    body { background: white; }
+  }
+</style>
+</head>
+<body>
+
+<header class="hdr">
+  <div class="hdr-brand">
+    <div class="hdr-logo">✦</div>
+    <div class="hdr-texts">
+      <div class="hdr-eyebrow">Panel de Administración</div>
+      <div class="hdr-title">CHECK-IN <em>CELIDER</em> 2026</div>
+    </div>
+  </div>
+  <div class="hdr-right">
+    <div class="live-badge" id="live-badge">
+      <div class="live-dot"></div>
+      <span class="live-txt">En vivo</span>
+    </div>
+  </div>
+</header>
+
+<div class="tabs">
+  <div class="tab active" onclick="showTab('dashboard')">📊 Dashboard</div>
+  <div class="tab" onclick="showTab('qr')">🔲 Generar QRs</div>
+</div>
+
+<div class="content">
+
+  <!-- ══ DASHBOARD ══ -->
+  <div class="panel active" id="panel-dashboard">
+
+    <div class="stats" id="stats-row">
+      <div class="stat" style="--c:var(--blue)">
+        <div class="stat-n" id="s-total">0</div>
+        <div class="stat-l">Total Delegados</div>
+      </div>
+      <div class="stat" style="--c:var(--green)">
+        <div class="stat-n" id="s-done">0</div>
+        <div class="stat-l">Check-In ✓</div>
+        <div class="stat-s" id="s-pct" style="color:var(--green)">0%</div>
+      </div>
+      <div class="stat" style="--c:var(--yellow)">
+        <div class="stat-n" id="s-pend">0</div>
+        <div class="stat-l">Pendientes</div>
+      </div>
+      <div class="stat" style="--c:#6366F1">
+        <div class="stat-n" id="s-masc">0</div>
+        <div class="stat-l">Masculino</div>
+      </div>
+      <div class="stat" style="--c:#EC4899">
+        <div class="stat-n" id="s-fem">0</div>
+        <div class="stat-l">Femenino</div>
+      </div>
+    </div>
+
+    <div class="progress-wrap"><div class="progress-bar" id="prog-bar" style="width:0%"></div></div>
+
+    <div class="bar">
+      <button class="btn bl" onclick="loadCheckins()">↻ Actualizar</button>
+      <button class="btn gr" onclick="exportExcel()">⬇ Exportar Excel</button>
+      <input class="search" id="dsrch" placeholder="Buscar delegado..." oninput="renderTable()">
+      <select class="filter-sel" id="dfilter" onchange="renderTable()">
+        <option value="all">Todos</option>
+        <option value="done">Con check-in</option>
+        <option value="pending">Sin check-in</option>
+      </select>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Nombre</th>
+            <th>Delegación</th>
+            <th>Comisión</th>
+            <th>Estado</th>
+            <th>Sexo</th>
+            <th>Centro Educativo</th>
+            <th>Distrito</th>
+            <th>Hora</th>
+          </tr>
+        </thead>
+        <tbody id="dash-body">
+          <tr class="empty-r"><td colspan="9">Sube un Excel en "Generar QRs" para ver los delegados aquí.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ══ QR PANEL ══ -->
+  <div class="panel" id="panel-qr">
+
+    <div id="qrup-sec">
+      <div class="upload-zone" id="upzone">
+        <div class="uz-icon">📋</div>
+        <h2>Arrastra tu Excel aquí</h2>
+        <p>o haz clic para seleccionar el archivo</p>
+        <div class="col-tags">
+          <span class="col-tag">NOMBRE</span>
+          <span class="col-tag b">DELEGACION</span>
+          <span class="col-tag">COMISION</span>
+        </div>
+        <input type="file" id="filein" accept=".xlsx,.xls,.csv">
+      </div>
+    </div>
+
+    <div class="bar" id="qr-ctrls" style="display:none">
+      <button class="btn prim" onclick="window.print()">🖨️ Imprimir</button>
+      <button class="btn bl"   onclick="dlAll()">⬇ Descargar todos</button>
+      <button class="btn danger" onclick="resetQR()">✕ Limpiar</button>
+      <input class="search" id="qrsrch" placeholder="Buscar..." oninput="filterQR()">
+    </div>
+
+    <div class="sec-h" id="qr-stitle" style="display:none">Delegados</div>
+    <div class="qr-grid" id="qr-grid"></div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════
+//  CONFIGURACIÓN SUPABASE
+// ═══════════════════════════════════════════════
+var SUPABASE_URL      = 'https://uegedofaqoycieezcjwz.supabase.co';
+var SUPABASE_ANON_KEY = 'sb_publishable_je8OETF_koSBTEHNKTaW9A_ocpos5Hu';
+
+// URL donde está publicado index.html (GitHub Pages)
+var FORM_URL = 'https://cristianvargasippc-art.github.io/CHECK-IN-CELIDER-2026/';
+// ═══════════════════════════════════════════════
+
+var db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+var allDelegates = [];
+var allCheckins  = [];
+var shownQR      = [];
+
+// Init
+loadCheckins();
+db.channel('rt-checkins')
+  .on('postgres_changes', { event: '*', schema: 'public', table: 'checkins' }, function(){ loadCheckins(); })
+  .subscribe();
+
+// ─── TABS ──────────────────────────────────────
+function showTab(t) {
+  document.querySelectorAll('.tab').forEach(function(el, i){
+    el.classList.toggle('active', ['dashboard','qr'][i] === t);
+  });
+  document.getElementById('panel-dashboard').classList.toggle('active', t === 'dashboard');
+  document.getElementById('panel-qr').classList.toggle('active', t === 'qr');
+}
+
+// ─── LOAD ──────────────────────────────────────
+function loadCheckins() {
+  db.from('checkins').select('*').order('created_at', { ascending: false })
+    .then(function(res) {
+      if (res.error) { toast('Error: ' + res.error.message); return; }
+      allCheckins = res.data || [];
+      renderStats();
+      renderTable();
+    });
+}
+
+// ─── STATS ─────────────────────────────────────
+function renderStats() {
+  var total = allDelegates.length || allCheckins.length;
+  var done  = allCheckins.length;
+  var pend  = Math.max(0, total - done);
+  var pct   = total ? Math.round(done / total * 100) : 0;
+  var masc  = allCheckins.filter(function(c){ return c.sexo === 'Masculino'; }).length;
+  var fem   = allCheckins.filter(function(c){ return c.sexo === 'Femenino'; }).length;
+
+  document.getElementById('s-total').textContent = total || 0;
+  document.getElementById('s-done').textContent  = done;
+  document.getElementById('s-pend').textContent  = pend;
+  document.getElementById('s-pct').textContent   = pct + '%';
+  document.getElementById('s-masc').textContent  = masc;
+  document.getElementById('s-fem').textContent   = fem;
+  document.getElementById('prog-bar').style.width = pct + '%';
+}
+
+// ─── TABLE ─────────────────────────────────────
+function renderTable() {
+  var q      = (document.getElementById('dsrch').value || '').toLowerCase().trim();
+  var filter = document.getElementById('dfilter').value;
+
+  var ciMap = {};
+  allCheckins.forEach(function(c){
+    ciMap[norm(c.nombre + '|' + c.delegacion)] = c;
+  });
+
+  var rows = [];
+
+  if (allDelegates.length) {
+    allDelegates.forEach(function(d){
+      var key = norm(d.nombre + '|' + d.delegacion);
+      rows.push({ d: d, ci: ciMap[key] || null });
+    });
+  } else {
+    allCheckins.forEach(function(c){
+      rows.push({ d: { nombre: c.nombre, delegacion: c.delegacion, comision: c.comision }, ci: c });
+    });
+  }
+
+  if (q) rows = rows.filter(function(r){
+    return norm(r.d.nombre).indexOf(q) > -1
+        || norm(r.d.delegacion).indexOf(q) > -1
+        || norm(r.d.comision).indexOf(q) > -1;
+  });
+
+  if (filter === 'done')    rows = rows.filter(function(r){ return  r.ci; });
+  if (filter === 'pending') rows = rows.filter(function(r){ return !r.ci; });
+
+  var tbody = document.getElementById('dash-body');
+  if (!rows.length) {
+    tbody.innerHTML = '<tr class="empty-r"><td colspan="9">No hay datos que mostrar.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = rows.map(function(r, i){
+    var d  = r.d;
+    var ci = r.ci;
+    return '<tr>'
+      + '<td style="color:var(--muted);font-size:.7rem">' + (i + 1) + '</td>'
+      + '<td><div class="td-name">' + esc(d.nombre) + '</div></td>'
+      + '<td>' + esc(d.delegacion) + '</td>'
+      + '<td>' + esc(d.comision)   + '</td>'
+      + '<td>'
+      +   (ci
+          ? '<span class="badge badge-ok"><span class="dot dot-ok"></span>Check-In ✓</span>'
+          : '<span class="badge badge-pending"><span class="dot dot-pend"></span>Pendiente</span>')
+      + '</td>'
+      + '<td>' + (ci ? esc(ci.sexo) : '—') + '</td>'
+      + '<td>' + (ci ? esc(ci.centro_educativo) : '—') + '</td>'
+      + '<td>' + (ci ? esc(ci.distrito) : '—') + '</td>'
+      + '<td style="color:var(--muted);font-size:.7rem">' + (ci ? fmtDate(ci.created_at) : '—') + '</td>'
+      + '</tr>';
+  }).join('');
+}
+
+function norm(s){ return String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim(); }
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function fmtDate(ts){
+  if (!ts) return '—';
+  var d = new Date(ts);
+  var m = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+  return d.getDate()+' '+m[d.getMonth()]+' '
+    + String(d.getHours()).padStart(2,'0')+':'
+    + String(d.getMinutes()).padStart(2,'0');
+}
+
+// ─── EXPORT ────────────────────────────────────
+function exportExcel(){
+  if (!allCheckins.length) { toast('No hay check-ins para exportar.'); return; }
+  var rows = [['Nombre','Delegación','Comisión','Sexo','Centro Educativo','Distrito','Hora Check-In']];
+  allCheckins.forEach(function(c){
+    rows.push([c.nombre, c.delegacion, c.comision, c.sexo, c.centro_educativo, c.distrito, fmtDate(c.created_at)]);
+  });
+  var ws = XLSX.utils.aoa_to_sheet(rows);
+  var wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Check-Ins');
+  XLSX.writeFile(wb, 'CELIDER2026_checkins.xlsx');
+  toast('✓ Excel exportado');
+}
+
+// ─── UPLOAD EXCEL ──────────────────────────────
+var zone   = document.getElementById('upzone');
+var finput = document.getElementById('filein');
+
+zone.addEventListener('click',     function(){ finput.click(); });
+zone.addEventListener('dragover',  function(e){ e.preventDefault(); zone.classList.add('over'); });
+zone.addEventListener('dragleave', function(){ zone.classList.remove('over'); });
+zone.addEventListener('drop',      function(e){ e.preventDefault(); zone.classList.remove('over'); loadFile(e.dataTransfer.files[0]); });
+finput.addEventListener('change',  function(e){ loadFile(e.target.files[0]); });
+
+function normKey(k){ return k.trim().toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,''); }
+
+function loadFile(file){
+  if (!file) return;
+  var r = new FileReader();
+  r.onload = function(e){
+    try {
+      var wb  = XLSX.read(e.target.result, { type:'binary' });
+      var ws  = wb.Sheets[wb.SheetNames[0]];
+      var raw = XLSX.utils.sheet_to_json(ws, { defval:'' });
+
+      allDelegates = raw.map(function(row, i){
+        function g(key){ var k = Object.keys(row).find(function(k){ return normKey(k) === key; }); return k ? String(row[k]).trim() : ''; }
+        return { idx: i+1, nombre: g('NOMBRE'), delegacion: g('DELEGACION'), comision: g('COMISION') };
+      }).filter(function(x){ return x.nombre; });
+
+      if (!allDelegates.length){ toast('Sin datos. Verifica columnas: NOMBRE, DELEGACION, COMISION'); return; }
+
+      shownQR = allDelegates.slice();
+      renderQR();
+      renderStats();
+      renderTable();
+      document.getElementById('qr-ctrls').style.display  = 'flex';
+      document.getElementById('qr-stitle').style.display = 'flex';
+      document.getElementById('qrup-sec').style.display  = 'none';
+      toast('✓ ' + allDelegates.length + ' delegados importados');
+    } catch(err){ toast('Error al leer el archivo'); console.error(err); }
+  };
+  r.readAsBinaryString(file);
+}
+
+// ─── QR ────────────────────────────────────────
+function buildQRUrl(p){
+  return FORM_URL
+    + '?n=' + encodeURIComponent(p.nombre)
+    + '&d=' + encodeURIComponent(p.delegacion)
+    + '&c=' + encodeURIComponent(p.comision);
+}
+
+function renderQR(){
+  var grid = document.getElementById('qr-grid');
+  grid.innerHTML = '';
+
+  shownQR.forEach(function(p, i){
+    var c = document.createElement('div');
+    c.className = 'qr-card';
+    c.innerHTML =
+      '<div class="qr-stripe"></div>'
+      + '<div class="qr-head">'
+      +   '<span class="qr-num">#' + String(p.idx).padStart(3,'0') + '</span>'
+      +   '<span class="qr-deleg">' + esc(p.delegacion) + '</span>'
+      + '</div>'
+      + '<div class="qr-body" id="qw' + p.idx + '"></div>'
+      + '<div class="qr-info">'
+      +   '<div class="qr-name">' + esc(p.nombre) + '</div>'
+      +   '<div class="qr-tags">'
+      +     (p.comision   ? '<span class="qt qt-b">' + esc(p.comision)   + '</span>' : '')
+      +     (p.delegacion ? '<span class="qt qt-g">' + esc(p.delegacion) + '</span>' : '')
+      +   '</div>'
+      + '</div>'
+      + '<button class="btn-dl" onclick="dlQR('+p.idx+')">⬇ Descargar</button>';
+    grid.appendChild(c);
+
+    (function(person, delay){
+      setTimeout(function(){
+        new QRCode(document.getElementById('qw' + person.idx), {
+          text: buildQRUrl(person),
+          width: 130, height: 130,
+          colorDark: '#0B1F3A', colorLight: '#FAFAF7',
+          correctLevel: QRCode.CorrectLevel.M
+        });
+      }, delay);
+    })(p, i * 20);
+  });
+}
+
+function filterQR(){
+  var q = document.getElementById('qrsrch').value.toLowerCase().trim();
+  shownQR = q ? allDelegates.filter(function(p){
+    return norm(p.nombre).indexOf(q) > -1 || norm(p.delegacion).indexOf(q) > -1;
+  }) : allDelegates.slice();
+  renderQR();
+}
+
+function resetQR(){
+  if (!confirm('¿Limpiar los QRs?')) return;
+  allDelegates = []; shownQR = [];
+  document.getElementById('qr-grid').innerHTML = '';
+  document.getElementById('qr-ctrls').style.display  = 'none';
+  document.getElementById('qr-stitle').style.display = 'none';
+  document.getElementById('qrup-sec').style.display  = 'block';
+  renderStats();
+}
+
+function dlQR(idx){
+  var el = document.getElementById('qw' + idx);
+  var cv = el ? el.querySelector('canvas') : null;
+  if (!cv){ toast('QR aún cargando...'); return; }
+  var p  = allDelegates.find(function(x){ return x.idx === idx; });
+  var a  = document.createElement('a');
+  a.download = 'QR_' + p.nombre.replace(/\s+/g,'_') + '.png';
+  a.href = cv.toDataURL('image/png');
+  a.click();
+}
+
+function dlAll(){
+  toast('Descargando...');
+  var i = 0;
+  (function next(){
+    if (i >= shownQR.length) return;
+    var p  = shownQR[i++];
+    var el = document.getElementById('qw' + p.idx);
+    var cv = el ? el.querySelector('canvas') : null;
+    if (cv){
+      var a = document.createElement('a');
+      a.download = 'QR_' + String(p.idx).padStart(3,'0') + '_' + p.nombre.replace(/\s+/g,'_') + '.png';
+      a.href = cv.toDataURL('image/png');
+      a.click();
+    }
+    setTimeout(next, 120);
+  })();
+}
+
+function toast(msg){
+  var t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('on');
+  setTimeout(function(){ t.classList.remove('on'); }, 3500);
+}
+</script>
+</body>
+</html>
